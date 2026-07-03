@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import API_BASE_URL from '../config/api';
 import { useParams, Link } from 'react-router-dom';
 import { CheckCircle, XCircle, Loader, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -15,7 +16,7 @@ const VerifyEmail = () => {
 
     const verifyEmail = async () => {
       try {
-        const res = await fetch(`http://localhost:5000/api/auth/verify-email/${token}`);
+        const res = await fetch(`${API_BASE_URL}/api/auth/verify-email/${token}`);
         const data = await res.json();
 
         if (!res.ok) {

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import API_BASE_URL from '../config/api';
 import { Link, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { Mail, Lock, Store, User, AlertCircle, Loader, Shield } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -41,7 +42,7 @@ const Login = () => {
         return;
       }
 
-      const res = await fetch('http://localhost:5000/api/auth/login', {
+      const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...formData, role }),
