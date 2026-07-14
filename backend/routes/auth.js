@@ -25,8 +25,8 @@ router.post('/register', async (req, res) => {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Generate Verification Token
-    const verificationToken = uuidv4();
+    // Generate 6-digit numeric OTP code
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
 
     // Create user
     const user = await User.create({
@@ -35,27 +35,61 @@ router.post('/register', async (req, res) => {
       password: hashedPassword,
       role: role || 'buyer',
       isVerified: false,
-      verificationToken,
+      verificationToken: otpCode, // store OTP in verificationToken field
     });
 
     // Send Verification Email
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-    const verificationLink = `${frontendUrl}/verify-email/${verificationToken}`;
-    const emailSent = await sendVerificationEmail(user.email, verificationLink);
+    const emailSent = await sendVerificationEmail(user.email, otpCode);
 
     if (!emailSent) {
       return res.status(201).json({
-        message: 'Account created, but we failed to send the verification email. Please contact support or try logging in later to resend.',
+        message: 'Account created, but we failed to send the verification code. Please contact support.',
         warning: 'Email delivery failed.',
+        email: user.email,
       });
     }
 
     res.status(201).json({
-      message: 'Account created! Please check your email to verify your account.',
+      message: 'Account created! Please check your email for the 6-digit verification code.',
+      email: user.email,
     });
   } catch (error) {
     console.error('Register error:', error);
     res.status(500).json({ message: 'Server error. Please try again.' });
+  }
+});
+
+// POST /api/auth/verify-otp
+router.post('/verify-otp', async (req, res) => {
+  const { email, otp } = req.body;
+
+  if (!email || !otp) {
+    return res.status(400).json({ message: 'Please provide email and verification code.' });
+  }
+
+  try {
+    const user = await User.findOne({ where: { email } });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    if (user.isVerified) {
+      return res.status(400).json({ message: 'Account is already verified.' });
+    }
+
+    if (user.verificationToken !== otp) {
+      return res.status(400).json({ message: 'Invalid verification code.' });
+    }
+
+    user.isVerified = true;
+    user.verificationToken = null;
+    await user.save();
+
+    res.json({ message: 'Email verified successfully! You can now log in.' });
+  } catch (error) {
+    console.error('Verify OTP error:', error);
+    res.status(500).json({ message: 'Server error during verification.' });
   }
 });
 
@@ -79,7 +113,11 @@ router.post('/login', async (req, res) => {
     }
 
     if (!user.isVerified) {
-      return res.status(403).json({ message: 'Please verify your email to log in. Check your inbox.' });
+      return res.status(403).json({ 
+        message: 'Please verify your email to log in. Check your inbox.',
+        email: user.email,
+        unverified: true
+      });
     }
 
     const token = jwt.sign(
@@ -99,7 +137,7 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// GET /api/auth/verify-email/:token
+// GET /api/auth/verify-email/:token (retained for backward compatibility link)
 router.get('/verify-email/:token', async (req, res) => {
   const { token } = req.params;
 
@@ -107,7 +145,7 @@ router.get('/verify-email/:token', async (req, res) => {
     const user = await User.findOne({ where: { verificationToken: token } });
 
     if (!user) {
-      return res.status(400).json({ message: 'Invalid or expired verification token.' });
+      return res.status(400).json({ message: 'Invalid or expired verification code.' });
     }
 
     user.isVerified = true;

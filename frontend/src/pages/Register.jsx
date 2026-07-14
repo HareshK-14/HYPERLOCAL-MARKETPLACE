@@ -35,9 +35,13 @@ const Register = () => {
 
       setStatus({ 
         type: data.warning ? 'error' : 'success', 
-        message: data.message || 'Account created! Please check your email to verify your account.' 
+        message: data.message || 'Account created! Please check your email for the 6-digit verification code.' 
       });
-      // Do not automatically redirect, let the user read the message and check their email.
+      if (!data.warning) {
+        setTimeout(() => {
+          navigate('/verify-otp', { state: { email: formData.email } });
+        }, 2000);
+      }
     } catch (err) {
       setStatus({ type: 'error', message: err.message });
     } finally {

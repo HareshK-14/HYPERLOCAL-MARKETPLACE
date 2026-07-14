@@ -51,6 +51,13 @@ const Login = () => {
       const data = await res.json();
 
       if (!res.ok) {
+        if (res.status === 403 && data.unverified) {
+          setError(data.message);
+          setTimeout(() => {
+            navigate('/verify-otp', { state: { email: data.email } });
+          }, 2000);
+          return;
+        }
         throw new Error(data.message || 'Login failed. Please try again.');
       }
 
