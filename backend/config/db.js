@@ -3,6 +3,8 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+const sslEnabled = process.env.DB_SSL === 'true';
+
 const sequelize = new Sequelize(
   process.env.DB_NAME || 'locallink',
   process.env.DB_USER || 'root',
@@ -12,6 +14,14 @@ const sequelize = new Sequelize(
     port: process.env.DB_PORT || 3306,
     dialect: 'mysql',
     logging: false,
+    dialectOptions: sslEnabled
+      ? {
+          ssl: {
+            rejectUnauthorized: true,
+            minVersion: 'TLSv1.2',
+          },
+        }
+      : {},
   }
 );
 
