@@ -39,7 +39,8 @@ router.post('/register', async (req, res) => {
     });
 
     // Send Verification Email
-    const verificationLink = `http://localhost:5173/verify-email/${verificationToken}`;
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const verificationLink = `${frontendUrl}/verify-email/${verificationToken}`;
     const emailSent = await sendVerificationEmail(user.email, verificationLink);
 
     if (!emailSent) {
