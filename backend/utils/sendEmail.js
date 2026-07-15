@@ -26,11 +26,11 @@ export const sendVerificationEmail = async (to, otpCode) => {
     let senderEmail = process.env.EMAIL_USER;
 
     if (isResend) {
-      // Resend SMTP Configuration
+      // Resend SMTP Configuration - using port 587 (STARTTLS) to prevent connection timeouts
       transporter = nodemailer.createTransport({
         host: 'smtp.resend.com',
-        port: 465,
-        secure: true,
+        port: 587,
+        secure: false,
         auth: {
           user: 'resend',
           pass: process.env.EMAIL_PASS, // Resend API Key starts with 're_'
