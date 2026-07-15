@@ -22,18 +22,37 @@ export const sendVerificationEmail = async (to, otpCode) => {
       return true; // Pretend it sent successfully
     }
 
-    transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
+    const isResend = process.env.EMAIL_PASS.startsWith('re_');
+    let senderEmail = process.env.EMAIL_USER;
 
-    console.log(`Attempting to send OTP email to: ${to} using ${process.env.EMAIL_USER}`);
+    if (isResend) {
+      // Resend SMTP Configuration
+      transporter = nodemailer.createTransport({
+        host: 'smtp.resend.com',
+        port: 465,
+        secure: true,
+        auth: {
+          user: 'resend',
+          pass: process.env.EMAIL_PASS, // Resend API Key starts with 're_'
+        },
+      });
+      // Free tier Resend requires sender to be onboarding@resend.dev
+      senderEmail = 'onboarding@resend.dev';
+      console.log(`Attempting to send OTP email to: ${to} using Resend SMTP`);
+    } else {
+      // Gmail SMTP Configuration
+      transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASS,
+        },
+      });
+      console.log(`Attempting to send OTP email to: ${to} using Gmail SMTP`);
+    }
 
     const info = await transporter.sendMail({
-      from: `"LocalLink Support" <${process.env.EMAIL_USER}>`, // sender address must match Gmail user
+      from: `"LocalLink Support" <${senderEmail}>`, // sender address
       to: to, // list of receivers
       subject: 'Verify Your LocalLink Account (OTP Code)', // Subject line
       text: `Welcome to LocalLink! Your 6-digit verification code is: ${otpCode}. This code is valid for 15 minutes.`, // plain text body
@@ -57,9 +76,6 @@ export const sendVerificationEmail = async (to, otpCode) => {
   } catch (error) {
     console.error('CRITICAL ERROR: Failed to send OTP verification email.');
     console.error('Error details:', error.message);
-    if (error.code === 'EAUTH') {
-      console.error('Authentication failed. Please check if EMAIL_USER and EMAIL_PASS (App Password) are correct.');
-    }
     return false;
   }
 };
